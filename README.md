@@ -5,12 +5,13 @@ It supports for L2-Norm Gradients Clipping, printing the gradients for each para
 
 # Extended API
 
+**class ModuleEXT(mxnet.module.Module)**
 - L2-Norm Gradients Clipping
 ```python
-set_l2norm_grad_clip(self, clip_gradients = 35, clip_gradients_global = True, verbose = False)
+set_l2norm_grad_clip(clip_gradients = 35, clip_gradients_global = True, verbose = False)
 ```
 
 - Setting optimizer states before initializing the optimizer
 ```python
-set_preload_optimizer_states(self, fname = None, prefix = None, epoch = None)
+set_preload_optimizer_states(fname = None, prefix = None, epoch = None)
 ```
