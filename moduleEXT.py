@@ -28,7 +28,7 @@ import warnings
 class ModuleEXT(mx.module.Module): 
     def __init__(self, *args, **kwargs):
         super(ModuleEXT, self).__init__(*args, **kwargs)
-        self.use_l2norm_grad_clip = False
+        self.set_l2norm_grad_clip(used = False)
 
     def set_preload_optimizer_states(self, fname = None, prefix = None, epoch = None):
         if fname is not None:
@@ -36,8 +36,8 @@ class ModuleEXT(mx.module.Module):
         else:
             self._preload_opt_states = '%s-%04d.states' % (prefix, epoch)
 
-    def set_l2norm_grad_clip(self, clip_gradients = 35, clip_gradients_global = True, verbose = False):
-        self.use_l2norm_grad_clip = True
+    def set_l2norm_grad_clip(self, clip_gradients = 35, clip_gradients_global = True, verbose = False, used = True):
+        self.use_l2norm_grad_clip = used 
         self.grad_clip_verbose = verbose
         self.clip_gradients = clip_gradients
         self.clip_gradients_global = clip_gradients_global
@@ -84,6 +84,11 @@ class ModuleEXT(mx.module.Module):
             for k in range(len(self._context)):
                 idx2name.update({i*len(self._context)+k: n
                                  for i, n in enumerate(self._exec_group.param_names)})
+        name2idx = {}
+        for k, v in idx2name.items():
+            if v not in name2idx:
+                name2idx[v] = []
+            name2idx[v].append(k)
 
         if isinstance(optimizer, str):
             optimizer_params = dict(optimizer_params)
@@ -107,6 +112,7 @@ class ModuleEXT(mx.module.Module):
             optimizer.idx2name = idx2name.copy()
 
         self._param_idx2name = idx2name 
+        self._param_name2idx = name2idx
         self._optimizer = optimizer
         self._kvstore = kvstore
         self._update_on_kvstore = update_on_kvstore
@@ -179,3 +185,34 @@ class ModuleEXT(mx.module.Module):
                             grad[:] *= scale_factor
                     if self.grad_clip_verbose and ctx_id == 0:
                         logging.info(" Gradient clipping: scaling down gradients (L2 norm %f > %f) by scale factor %f" % (l2norm_grad, self.clip_gradients, scale_factor))
+
+    def print_gradients(self, names = None):
+        # names: list or None
+        assert names is None or type(names) == list, "the type of names must be list or None"
+
+        # only print the information of device 0
+        grad_arrays = self._exec_group.grad_arrays
+
+        if names is not None:
+            print_index = self.get_idxes_from_names(names)
+        else:
+            print_index = range(len(grad_arrays))
+
+        for index in print_index:
+            grads = grad_arrays[index]
+            name = self._param_idx2name[index]
+            grad = grads[0] # device 0
+            assert grad is not None, "The gradient %s doesn't exist" % name
+            mean = mx.nd.mean(grad).asscalar()
+            std  = mx.nd.norm(grad - mean).asscalar() / np.sqrt(grad.size)
+            logging.info("%s: [mean: %e, var: %e]" % (name, mean, std))
+        logging.info("--------------------------")
+
+    def get_idxes_from_names(self, names):
+        # names: list
+        assert type(names) == list, "the type of names must be list"
+        idx = []
+        for name in names:
+            assert name in self._param_name2idx, "%s is not any parameter name" % name
+            idx.extend(self._param_name2idx[name])
+        return idx
