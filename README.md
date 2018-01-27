@@ -12,7 +12,7 @@ It supports for the features below:
 **class ModuleEXT(mxnet.module.Module)**
 - L2-Norm Gradients Clipping
 ```python
-set_l2norm_grad_clip(clip_gradients = 35, clip_gradients_global = True, verbose = False)
+set_l2norm_grad_clip(clip_gradients = 35, clip_gradients_global = True, verbose = False, used = True)
 ```
 
 - Setting optimizer states before initializing the optimizer
