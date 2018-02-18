@@ -24,6 +24,7 @@ import mxnet as mx
 import numpy as np
 import logging
 import warnings
+from mxnet.model import _create_kvstore, _initialize_kvstore, _update_params, _update_params_on_kvstore
 
 class ModuleEXT(mx.module.Module): 
     def __init__(self, *args, **kwargs):
@@ -161,7 +162,7 @@ class ModuleEXT(mx.module.Module):
             if l2norm_grad > self.clip_gradients:
                 scale_factor = self.clip_gradients / l2norm_grad
                 if self.grad_clip_verbose:
-                    logging.info(" Gradient clipping: scaling down gradients (L2 norm %f > %f) by scale factor %f" % (l2norm_grad, self.clip_gradients, scale_factor))
+                    logging.info("Gradient clipping: scaling down gradients (L2 norm %f > %f) by scale factor %f" % (l2norm_grad, self.clip_gradients, scale_factor))
                 for grads in self._exec_group.grad_arrays:
                     for ctx_id in range(num_execs):
                         grad = grads[ctx_id]
@@ -184,7 +185,7 @@ class ModuleEXT(mx.module.Module):
                         if grad is not None:
                             grad[:] *= scale_factor
                     if self.grad_clip_verbose and ctx_id == 0:
-                        logging.info(" Gradient clipping: scaling down gradients (L2 norm %f > %f) by scale factor %f" % (l2norm_grad, self.clip_gradients, scale_factor))
+                        logging.info("Gradient clipping: scaling down gradients (L2 norm %f > %f) by scale factor %f" % (l2norm_grad, self.clip_gradients, scale_factor))
 
     def print_gradients(self, names = None):
         # names: list or None
