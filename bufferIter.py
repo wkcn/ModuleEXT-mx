@@ -24,12 +24,14 @@ class DataThread(threading.Thread):
                     self.s.buffer.put(self.s.iterator.next())
                 except StopIteration:
                     self.s.buffer.put(None)
+                    self.s.reset_for_thread.wait()
 
 class BufferIter(mx.io.DataIter):
     def __init__(self, iterator, max_buffer_size = 16):
         self.iterator = iterator
         self.buffer = Queue.Queue(maxsize = max_buffer_size)
         self.reset_event = threading.Event()
+        self.reset_for_thread = threading.Event()
         self.reset_flag = False
         self.thread = DataThread(self)
         self.thread.setDaemon(True)
@@ -42,8 +44,10 @@ class BufferIter(mx.io.DataIter):
         # avoid dead lock
         if not self.buffer.empty():
             self.buffer.get()
+        self.reset_for_thread.set()
         self.reset_event.wait()
         self.reset_event.clear()
+        self.reset_for_thread.clear()
     @property
     def provide_data(self):
         return self.iter.provide_data
