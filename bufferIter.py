@@ -50,10 +50,10 @@ class BufferIter(mx.io.DataIter):
         self.reset_for_thread.clear()
     @property
     def provide_data(self):
-        return self.iter.provide_data
+        return self.iterator.provide_data
     @property
     def provide_label(self):
-        return self.iter.provide_label
+        return self.iterator.provide_label
     def __next__(self):
         return self.next()
     def next(self):
